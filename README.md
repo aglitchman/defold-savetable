@@ -24,6 +24,38 @@ local tbl2 = savetable.parse_string(str)
 pprint(tbl2)
 ```
 
+### How to use it in [DefSave](https://github.com/subsoap/defsave) for HTML5 builds
+
+`defsave/defsave.lua`, replace lines 124-131 with:
+
+```lua
+	local loaded_file
+	if html5 then
+		-- sys.load can't be used for HTML5 apps running on iframe from a different origin (cross-origin iframe)
+		-- use `localStorage` instead because of this limitation on default IndexedDB storage used by Defold
+		local EMPTY_TABLE = savetable.stringify({})
+		loaded_file = savetable.parse_string(html5.run([[(function(){try{return window.localStorage.getItem(']] .. path .. [[')||']] .. EMPTY_TABLE .. [['}catch(e){return']] .. EMPTY_TABLE .. [['}})()]]))
+	else
+		loaded_file  = sys.load(path)
+	end
+```
+
+`defsave/defsave.lua`, replace lines 183-194 with:
+
+```lua
+	local is_save_successful;
+	if html5 then
+		-- sys.save can't be used for HTML5 apps running on iframe from a different origin (cross-origin iframe)
+		-- use `localStorage` instead because of this limitation on default IndexedDB storage used by Defold
+		local encoded_data = savetable.stringify(M.loaded[file].data)
+		html5.run([[try{window.localStorage.setItem(']] .. path .. [[', ']] .. encoded_data .. [[')}catch(e){}]])
+
+		is_save_successful = true
+	else
+		is_save_successful = sys.save(path, M.loaded[file].data)
+	end
+```
+
 ## Credits
 
 This project is licensed under the terms of the CC0 1.0 Universal license.
