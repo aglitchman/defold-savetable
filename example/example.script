@@ -14,7 +14,7 @@ end
 function init(self)  
     msg.post("@render:", "use_fixed_fit_projection", { near = -1, far = 1 })
 
-    print(savetable.stringify({}))
+    print("Empty table {} is", savetable.stringify({}))
 
     local t = { hello = "world" }
     local s = savetable.stringify(t)
