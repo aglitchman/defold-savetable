@@ -1,0 +1,31 @@
+local TINT_GREEN = vmath.vector4(0.3, 0.9, 0.3, 1)
+local TINT_RED = vmath.vector4(0.9, 0.3, 0.3, 1)
+
+local function equal_str(actual, expected, label_url)
+    if actual == expected then
+        label.set_text(label_url, tostring(actual) .. " ==\n" .. tostring(expected))
+        go.set(label_url, "color", TINT_GREEN)
+    else
+        label.set_text(label_url, tostring(actual) .. " ~=\n" .. tostring(expected))
+        go.set(label_url, "color", TINT_RED)
+    end
+end
+
+function init(self)  
+    msg.post("@render:", "use_fixed_fit_projection", { near = -1, far = 1 })
+
+    print(savetable.stringify({}))
+
+    local t = { hello = "world" }
+    local s = savetable.stringify(t)
+    local t2 = savetable.parse_string(s)
+
+    equal_str(s, "SERUQgMAAAABAAQEBQAAAGhlbGxvBQAAAHdvcmxk", "/tests#test1")
+    equal_str(t.hello, t2.hello, "/tests#test2")
+end
+
+function update(self, dt)
+end
+
+function on_message(self, message_id, message, sender)
+end
