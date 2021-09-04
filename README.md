@@ -15,11 +15,11 @@ https://github.com/aglitchman/defold-savetable/archive/main.zip
 ```lua
 local tbl = { example = true }
 
--- Encode Lua table into string
+-- Encode Lua table into a base64-encoded string
 local str = savetable.stringify(tbl)
 print(str)
 
--- Decode Lua table from string
+-- Decode Lua table from a string
 local tbl2 = savetable.parse_string(str)
 pprint(tbl2)
 ```
