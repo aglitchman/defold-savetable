@@ -1,0 +1,43 @@
+- name: savetable
+  type: table
+  desc: Serialize/deserialize Lua tables in Defold.
+  members:
+  
+  - name: serialize
+    type: function
+    parameters:
+    - name: table
+      type: table
+    - name: max_memory_bytes
+      type: number
+      optional: true
+    returns:
+    - name: encoded_table
+      type: string
+
+  - name: deserialize
+    type: function
+    parameters:
+    - name: encoded_table
+      type: string
+    returns:
+    - name: result
+      type: table
+
+  - name: encode_base64
+    type: function
+    parameters:
+      - name: input
+        type: string
+    return:
+      - name: output
+        type: string
+
+  - name: decode_base64
+    type: function
+    parameters:
+      - name: input
+        type: string
+    return:
+      - name: output
+        type: string

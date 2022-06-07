@@ -14,14 +14,27 @@ end
 function init(self)  
     msg.post("@render:", "use_fixed_fit_projection", { near = -1, far = 1 })
 
-    print("Empty table {} is", savetable.stringify({}))
+    print("Base64 'world' encoded is", savetable.encode_base64("world"))
+    print("Empty table {} is", savetable.encode_base64(savetable.serialize({})))
 
     local t = { hello = "world" }
-    local s = savetable.stringify(t)
-    local t2 = savetable.parse_string(s)
+    local s = savetable.encode_base64(savetable.serialize(t, 1024))
+    local t2 = savetable.deserialize(savetable.decode_base64(s))
 
     equal_str(s, "SERUQgMAAAABAAQEBQAAAGhlbGxvBQAAAHdvcmxk", "/tests#test1")
     equal_str(t.hello, t2.hello, "/tests#test2")
+
+    local big_table = {}
+    for i = 1, 50000 do
+        table.insert(big_table, { data = i })
+    end
+    local s = savetable.serialize(big_table, 4 * 1024 * 1024)
+    print("Size", #s)
+    local t2 = savetable.deserialize(s)
+    for i = 1, 50000 do
+        assert(t2[i].data == i)
+    end
+    print("OK")
 end
 
 function update(self, dt)

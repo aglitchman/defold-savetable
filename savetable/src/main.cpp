@@ -8,61 +8,77 @@
 #include <string.h>
 
 namespace dmScript {
-extern const uint32_t MAX_BUFFER_SIZE = 512 * 1024;
-
-extern union SaveLoadBuffer {
-    uint32_t m_alignment;           // This alignment is required for js-web
-    char m_buffer[MAX_BUFFER_SIZE]; // Resides in .bss
-} g_saveload;
-
 uint32_t CheckTable(lua_State *L, char *buffer, uint32_t buffer_size, int index);
 void PushTable(lua_State *L, const char *buffer, uint32_t buffer_size);
 } // namespace dmScript
 
-static int Stringify(lua_State *L) {
-    using namespace dmScript;
-    using namespace dmCrypt;
-
+static int Serialize(lua_State *L) {
     luaL_checktype(L, 1, LUA_TTABLE);
-    uint32_t n_used = CheckTable(L, g_saveload.m_buffer, sizeof(g_saveload.m_buffer), 1);
 
-    uint32_t b64_len = n_used * 4 / 3 + 4;
-    uint8_t *b64 = (uint8_t *)malloc(b64_len);
-    if (!Base64Encode((uint8_t *)g_saveload.m_buffer, n_used, b64, &b64_len)) {
-        free(b64);
-        return luaL_error(L, "Can't encode data into Base64 string.");
+    int buflen = 512 * 1024;
+    if (lua_isnumber(L, 2)) {
+        buflen = lua_tonumber(L, 2);
     }
+    char *buf = (char *)malloc(buflen);
+    uint32_t n_used = dmScript::CheckTable(L, buf, buflen, 1);
 
-    lua_pushlstring(L, (char *)b64, b64_len);
-    free(b64);
-
+    lua_pushlstring(L, (char *)buf, n_used);
+    free(buf);
     return 1;
 }
 
-static int ParseString(lua_State *L) {
-    using namespace dmScript;
-    using namespace dmCrypt;
+static int Deserialize(lua_State *L) {
+    size_t srclen;
+    const char* src = luaL_checklstring(L, 1, &srclen);
 
-    const char *b64 = luaL_checkstring(L, 1);
-    const uint32_t b64_len = strlen(b64);
-    if (b64_len / 4 * 3 > MAX_BUFFER_SIZE) {
-        return luaL_error(L, "Data is too long. Max length is %d.", MAX_BUFFER_SIZE);
+    dmScript::PushTable(L, src, srclen);
+    return 1;
+}
+
+static int Encode_Base64(lua_State* L)
+{
+    size_t srclen;
+    const char* src = luaL_checklstring(L, 1, &srclen);
+
+    uint32_t dstlen = srclen * 4 / 3 + 4;
+    uint8_t* dst = (uint8_t*)malloc(dstlen);
+    if (!dmCrypt::Base64Encode((uint8_t *)src, srclen, dst, &dstlen)) {
+        free(dst);
+        return luaL_error(L, "Can't encode data into Base64 string.");
+    }
+    
+    lua_pushlstring(L, (char *)dst, dstlen);
+    free(dst);
+    return 1;
+}
+
+static int Decode_Base64(lua_State* L)
+{
+    size_t srclen;
+    const char* src = luaL_checklstring(L, 1, &srclen);
+
+    uint32_t dstlen = srclen * 3 / 4;
+    uint8_t* dst = (uint8_t*)malloc(dstlen);
+    if (!dmCrypt::Base64Decode((const uint8_t*)src, srclen, dst, &dstlen))
+    {
+        free(dst);
+        return luaL_error(L, "Can't decode Base64 string.");
     }
 
-    uint32_t nread = MAX_BUFFER_SIZE;
-    if (!Base64Decode((const uint8_t *)b64, b64_len, (uint8_t *)g_saveload.m_buffer, &nread)) {
-        return luaL_error(L, "Base64 string is invalid.");
-    }
-
-    PushTable(L, g_saveload.m_buffer, nread);
+    lua_pushlstring(L, (char*)dst, dstlen);
+    free(dst);
     return 1;
 }
 
 // Functions exposed to Lua
-static const luaL_reg Module_methods[] = {{"stringify", Stringify},
-                                          {"parse_string", ParseString},
-                                          /* Sentinel: */
-                                          {NULL, NULL}};
+static const luaL_reg Module_methods[] = {
+    {"serialize", Serialize},
+    {"deserialize", Deserialize},
+    // Base64
+    {"encode_base64", Encode_Base64},
+    {"decode_base64", Decode_Base64},
+    /* Sentinel: */
+    {NULL, NULL}};
 
 static void LuaInit(lua_State *L) {
     int top = lua_gettop(L);
